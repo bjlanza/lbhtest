@@ -1,0 +1,21 @@
+OrdererOrgs:
+  - Name: Orderer
+    Domain: example.com
+    Specs:
+      - Hostname: orderer
+PeerOrgs:
+  - Name: Pueblo1
+    Domain: pueblo1.hispania.es
+    EnableNodeOUs: true
+    Template:
+      Count: 2
+  - Name: Pueblo2
+    Domain: pueblo2.hispania.es
+    EnableNodeOUs: true
+    Template:
+      Count: 2
+  - Name: Pueblo3
+    Domain: pueblo3.hispania.es
+    EnableNodeOUs: true
+    Template:
+      Count: 2

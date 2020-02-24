@@ -1,0 +1,229 @@
+# Copyright IBM Corp. All Rights Reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+version: '2'
+
+volumes:
+  orderer.example.com:
+  #orderer.hispania.es:
+  peer0.pueblo1.hispania.es:
+  peer0.pueblo2.hispania.es:
+  peer0.pueblo3.hispania.es:
+
+networks:
+  hispania:
+    #driver: bridge
+    #ipam:
+     #config:
+       #- subnet: 10.6.1.0/16
+
+services:
+  orderer.example.com:
+    extends:
+      file:   base/docker-compose-base.yaml
+      service: orderer.example.com
+    container_name: orderer.example.com
+    networks:
+      - hispania
+  
+  peer0.pueblo1.hispania.es:
+    container_name: peer0.pueblo1.hispania.es
+    extends:
+      file:  base/docker-compose-base.yaml
+      service: peer0.pueblo1.hispania.es
+    depends_on:
+      - orderer.example.com
+      - couchdb1
+    networks:
+      - hispania
+  
+  peer1.pueblo1.hispania.es:
+    container_name: peer1.pueblo1.hispania.es
+    extends:
+      file:  base/docker-compose-base.yaml
+      service: peer1.pueblo1.hispania.es
+    depends_on:
+      - orderer.example.com
+      - couchdb1
+    networks:
+      - hispania
+
+  peer0.pueblo2.hispania.es:
+    container_name: peer0.pueblo2.hispania.es
+    extends:
+      file:  base/docker-compose-base.yaml
+      service: peer0.pueblo2.hispania.es
+    depends_on:
+      - orderer.example.com
+      #- couchdb2
+    networks:
+      - hispania
+
+  peer0.pueblo3.hispania.es:
+    container_name: peer0.pueblo3.hispania.es
+    extends:
+      file:  base/docker-compose-base.yaml
+      service: peer0.pueblo3.hispania.es
+    depends_on:
+      - orderer.example.com
+      #- couchdb3
+    networks:
+      - hispania
+  
+  ca.pueblo1.hispania.es:
+    image: hyperledger/fabric-ca
+    environment:
+      - FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server
+      - FABRIC_CA_SERVER_CA_NAME=ca.pueblo1.hispania.es
+      - FABRIC_CA_SERVER_CA_CERTFILE=/etc/hyperledger/fabric-ca-server-config/ca.pueblo1.hispania.es-cert.pem
+      - FABRIC_CA_SERVER_CA_KEYFILE=/etc/hyperledger/fabric-ca-server-config/a087380b05e6495d7a8935dac4eace3ba3973cad4dd124778d88b2cadd9021c6_sk
+      - FABRIC_CA_SERVER_PORT=7054
+    ports:
+      - "7054:7054"
+    command: sh -c 'fabric-ca-server start -b admin:adminpw'
+    volumes:
+      - ../crypto-config/peerOrganizations/pueblo1.hispania.es/ca/:/etc/hyperledger/fabric-ca-server-config
+    container_name: ca.pueblo1.hispania.es
+    networks:
+      - hispania
+
+  cli:
+    container_name: cli
+    #image: hyperledger/fabric-tools:$IMAGE_TAG
+    image: hyperledger/fabric-tools:1.4.2
+    tty: true
+    stdin_open: true
+    environment:
+      - GOPATH=/opt/gopath
+      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
+      #- FABRIC_LOGGING_SPEC=DEBUG
+      - FABRIC_LOGGING_SPEC=INFO
+      - CORE_PEER_ID=cli
+      - CORE_PEER_ADDRESS=peer0.pueblo1.hispania.es:7051
+      - CORE_PEER_LOCALMSPID=Org1MSP
+      - CORE_PEER_TLS_ENABLED=false
+      - CORE_PEER_TLS_CERT_FILE=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/pueblo1.hispania.es/peers/peer0.pueblo1.hispania.es/tls/server.crt
+      - CORE_PEER_TLS_KEY_FILE=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/pueblo1.hispania.es/peers/peer0.pueblo1.hispania.es/tls/server.key
+      - CORE_PEER_TLS_ROOTCERT_FILE=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/pueblo1.hispania.es/peers/peer0.pueblo1.hispania.es/tls/ca.crt
+      - CORE_PEER_MSPCONFIGPATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/pueblo1.hispania.es/users/Admin@pueblo1.hispania.es/msp
+    working_dir: /opt/gopath/src/github.com/hyperledger/fabric/peer
+    command: /bin/bash
+    volumes:
+        - /var/run/:/host/var/run/
+        - ./chaincode:/opt/gopath/src/github.com/chaincode
+        - ./crypto-config:/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/
+        - ./scripts:/opt/gopath/src/github.com/hyperledger/fabric/peer/scripts/
+        - ./channel-artifacts:/opt/gopath/src/github.com/hyperledger/fabric/peer/channel-artifacts
+    depends_on:
+      - orderer.example.com
+    networks:
+      - hispania
+
+  cli2:
+    container_name: cli2
+    #image: hyperledger/fabric-tools:$IMAGE_TAG
+    image: hyperledger/fabric-tools:1.4.2
+    tty: true
+    stdin_open: true
+    dns_search: .
+    environment:
+      - GOPATH=/opt/gopath
+      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
+      #- FABRIC_LOGGING_SPEC=DEBUG
+      - FABRIC_LOGGING_SPEC=INFO
+      - CORE_PEER_ID=cli2
+      - CORE_PEER_ADDRESS=peer0.pueblo2.hispania.es:7051
+      - CORE_PEER_LOCALMSPID=Org2MSP
+      - CORE_PEER_TLS_ENABLED=false
+      - CORE_PEER_TLS_CERT_FILE=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/pueblo2.hispania.es/peers/peer0.pueblo2.hispania.es/tls/server.crt
+      - CORE_PEER_TLS_KEY_FILE=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/pueblo2.hispania.es/peers/peer0.pueblo2.hispania.es/tls/server.key
+      - CORE_PEER_TLS_ROOTCERT_FILE=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/pueblo2.hispania.es/peers/peer0.pueblo2.hispania.es/tls/ca.crt
+      - CORE_PEER_MSPCONFIGPATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/pueblo2.hispania.es/users/Admin@pueblo2.hispania.es/msp
+    working_dir: /opt/gopath/src/github.com/hyperledger/fabric/peer
+    command: /bin/bash
+    volumes:
+        - /var/run/:/host/var/run/
+        - ./chaincode:/opt/gopath/src/github.com/chaincode
+        - ./crypto-config:/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/
+        - ./scripts:/opt/gopath/src/github.com/hyperledger/fabric/peer/scripts/
+        - ./channel-artifacts:/opt/gopath/src/github.com/hyperledger/fabric/peer/channel-artifacts
+    depends_on:
+      - orderer.example.com
+      #- couchdb2
+    networks:
+      - hispania
+  
+  cli3:
+    container_name: cli3
+    #image: hyperledger/fabric-tools:$IMAGE_TAG
+    image: hyperledger/fabric-tools:1.4.2
+    tty: true
+    stdin_open: true
+    environment:
+      - GOPATH=/opt/gopath
+      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
+      #- FABRIC_LOGGING_SPEC=DEBUG
+      - FABRIC_LOGGING_SPEC=INFO
+      - CORE_PEER_ID=cli3
+      - CORE_PEER_ADDRESS=peer0.pueblo3.hispania.es:7051
+      - CORE_PEER_LOCALMSPID=Org3MSP
+      - CORE_PEER_TLS_ENABLED=false
+      - CORE_PEER_TLS_CERT_FILE=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/pueblo3.hispania.es/peers/peer0.pueblo3.hispania.es/tls/server.crt
+      - CORE_PEER_TLS_KEY_FILE=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/pueblo3.hispania.es/peers/peer0.pueblo3.hispania.es/tls/server.key
+      - CORE_PEER_TLS_ROOTCERT_FILE=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/pueblo3.hispania.es/peers/peer0.pueblo3.hispania.es/tls/ca.crt
+      - CORE_PEER_MSPCONFIGPATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/pueblo3.hispania.es/users/Admin@pueblo3.hispania.es/msp
+    working_dir: /opt/gopath/src/github.com/hyperledger/fabric/peer
+    command: /bin/bash
+    volumes:
+        - /var/run/:/host/var/run/
+        - ./chaincode:/opt/gopath/src/github.com/chaincode
+        - ./crypto-config:/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/
+        - ./scripts:/opt/gopath/src/github.com/hyperledger/fabric/peer/scripts/
+        - ./channel-artifacts:/opt/gopath/src/github.com/hyperledger/fabric/peer/channel-artifacts
+    depends_on:
+      - orderer.example.com
+      #- couchdb3
+    networks:
+      - hispania
+   
+  # - 
+  # - Couchdb Databases
+  # - 
+
+  couchdb1:
+    container_name: couchdb1
+    image: hyperledger/fabric-couchdb
+    # Populate the COUCHDB_USER and COUCHDB_PASSWORD to set an admin user and password
+    # for CouchDB.  This will prevent CouchDB from operating in an "Admin Party" mode.
+    environment:
+      - COUCHDB_USER=
+      - COUCHDB_PASSWORD=
+      - DB_URL= http://localhost:5984/member_db
+    ports:
+      - 5984:5984
+    networks:
+      - hispania
+    
+  # couchdb2:
+  #   container_name: couchdb2
+  #   image: hyperledger/fabric-couchdb
+  #   environment:
+  #     - COUCHDB_USER=
+  #     - COUCHDB_PASSWORD=
+  #   ports:
+  #     - 6984:5984
+  #   networks:
+  #     - hispania
+
+  # couchdb3:
+  #   container_name: couchdb3
+  #   image: hyperledger/fabric-couchdb
+  #   environment:
+  #     - COUCHDB_USER=
+  #     - COUCHDB_PASSWORD=
+  #   ports:
+  #     - 7984:5984
+  #   networks:
+  #     - hispania
